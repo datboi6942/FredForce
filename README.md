@@ -1,6 +1,7 @@
 # FredForce
 A hashcracking tool that has integrated AI for generating wordlists based on a targets personal information
 ## Features
+- GPT-4 powered wordlist/password generation
 - Multiple attack modes: Brute Force, Dictionary, and Hybrid.
 - Session management to save and resume attacks.
 - Logging of hash values, attack modes, and results.

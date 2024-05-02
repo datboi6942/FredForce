@@ -4,6 +4,7 @@
 #hybrid attack
 from itertools import product
 import hashlib
+import os
 from dictionary_loader import load_dictionary
 from session_manager import SessionManager
 
@@ -69,45 +70,59 @@ def bruteforce_attack(hash_value, hash_type, bruteforce_options, start_from=0, s
     except Exception as e:
         print(f"An error occurred: {e}")
     return None
-def hybrid_attack(hash_value, hash_type, dictionary_file, wordlist):
-    wordlist = input("Enter path to wordlist file: ")
+
+def hybrid_attack(hash_value, hash_type, dictionary_file, bruteforce_options, position):
     print("Starting hybrid attack...")
-    try:
-        with open(dictionary_file, 'r') as file:
-            dictionary = [line.strip() for line in file]
-        
-        # Create a hash function based on the hash_type
-        hash_func = getattr(hashlib, hash_type)
-        
-        # Try dictionary attack first
-        for word in dictionary:
-            if hash_func(word.encode()).hexdigest() == hash_value:
-                print(f"Password found: {word}")
-                return word
-        
-        # Brute-force by appending numbers to dictionary words
-        for word in dictionary:
-            for i in range(1000):  # Limiting to 1000 for example
-                test_word = f"{word}{i}"
-                if hash_func(test_word.encode()).hexdigest() == hash_value:
-                    print(f"Password found: {test_word}")
-                    return test_word
-        # Brute-force by appending numbers to dictionary words
-        for word in dictionary:
-            for i in range(1000):  # Limiting to 1000 for example
-                test_word = f"{word}{i}"
-                if hash_func(test_word.encode()).hexdigest() == hash_value:
-                    print(f"Password found: {test_word}")
-                    return test_word
-        # Brute-force by appending words from wordlist to dictionary words
-        for word in dictionary:
-            for word2 in wordlist:
-                test_word = f"{word}{word2}"
-                if hash_func(test_word.encode()).hexdigest() == hash_value:
-                    print(f"Password found: {test_word}")
-                    return test_word
-        print("Password not found.")
-    except FileNotFoundError:
-        print("Dictionary file not found.")
-    except AttributeError:
-        print(f"Hash type {hash_type} is not supported.")
+    
+    # First, try the dictionary attack
+    result = dictionary_attack(hash_value, hash_type, dictionary_file)
+    if result:
+        print(f"Password found using dictionary attack: {result}")
+        return result
+
+    # If not found, proceed with brute force
+    modified_wordlist = generate_modified_words_from_dictionary(dictionary_file, bruteforce_options, position)
+    for index, word in enumerate(modified_wordlist):
+        if index % 1000 == 0:  # Update progress every 1000 words
+            print(f"Tested {index} words, current word: '{word}'...")
+        if getattr(hashlib, hash_type)(word.encode()).hexdigest() == hash_value:
+            print(f"Password found using brute force: {word}")
+            return word
+
+    print("No valid password found.")
+    return None
+
+def generate_modified_words_from_dictionary(dictionary_file, bruteforce_options, position):
+    with open(dictionary_file, 'r', encoding='utf-8', errors='ignore') as file:
+        for line in file:
+            word = line.strip()
+            charsets = {
+                'l': "abcdefghijklmnopqrstuvwxyz",
+                'L': "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                'N': "0123456789",
+                '@': "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+            }
+            pattern = ''.join(charsets[char] for char in bruteforce_options if char in charsets)
+            if position == 'start':
+                for pat in pattern:
+                    yield f"{pat}{word}"
+            elif position == 'end':
+                for pat in pattern:
+                    yield f"{word}{pat}"
+            else:
+                pos = int(position)
+                for pat in pattern:
+                    yield word[:pos] + pat + word[pos:]
+
+def generate_modified_words(base_word, position, bruteforce_options):
+    if position == 'start':
+        return [f"{pattern}{base_word}" for pattern in bruteforce_options]
+    elif position == 'end':
+        return [f"{base_word}{pattern}" for pattern in bruteforce_options]
+    else:
+        # Insert at specific position or handle other cases
+        try:
+            pos = int(position)
+            return [base_word[:pos] + pattern + base_word[pos:] for pattern in bruteforce_options]
+        except ValueError:
+            raise ValueError("Position must be 'start', 'end', or a valid integer index.")

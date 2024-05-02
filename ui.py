@@ -21,29 +21,76 @@
 
 import sys
 import json
+import os
+import time
+from AI import generate_wordlist
+from AI import collect_sensitive_information
+from AI import get_api_key
 from hash_identifier import identify_hash_types as identify_hash
 from session_manager import *
 from logger import log_hash, log_attack_mode
-from attack_methods import hybrid_attack, bruteforce_attack, dictionary_attack   # Assuming this is the attack method used
+from attack_methods import hybrid_attack, bruteforce_attack, dictionary_attack
+from banner import display_banner   # Assuming this is the attack method used
 
-def display_banner():
-    banner = """
-    #########################################
-    # Welcome to FredForce Hash Cracker     #
-    #########################################
-    """
-    print(banner)
+import os
+import time
+import math
+
+
+banner_text = """
+                                                                                                  
+                                                                                                  
+    ,---,.                                      ,---,.                                            
+  ,'  .' |                            ,---,   ,'  .' |                                            
+,---.'   |   __  ,-.                ,---.'| ,---.'   |    ,---.     __  ,-.                       
+|   |   .' ,' ,'/ /|                |   | : |   |   .'   '   ,'\  ,' ,'/ /|                       
+:   :  :   '  | |' |    ,---.       |   | | :   :  :    /   /   | '  | |' |    ,---.      ,---.   
+:   |  |-, |  |   ,'   /     \    ,--.__| | :   |  |-, .   ; ,. : |  |   ,'   /     \    /     \  
+|   :  ;/| '  :  /    /    /  |  /   ,'   | |   :  ;/| '   | |: : '  :  /    /    / '   /    /  | 
+|   |   .' |  | '    .    ' / | .   '  /  | |   |   .' '   | .; : |  | '    .    ' /   .    ' / | 
+'   :  '   ;  : |    '   ;   /| '   ; |:  | '   :  '   |   :    | ;  : |    '   ; :__  '   ;   /| 
+|   |  |   |  , ;    '   |  / | |   | '/  ' |   |  |    \   \  /  |  , ;    '   | '.'| '   |  / | 
+|   :  \    ---'     |   :    | |   :    :| |   :  \     `----'    ---'     |   :    : |   :    | 
+|   | ,'              \   \  /   \   \  /   |   | ,'                         \   \  /   \   \  /  
+`----'                 `----'     `----'    `----'                            `----'     `----'   
+                                                                                                 
+"""
+
+
+
 
 def get_user_input(prompt):
     return input(prompt)
 
 def main():
-    display_banner()
+    display_banner(banner_text)
+    api_key = get_api_key()
+    if not api_key:
+        api_key = input("Enter your OpenAI API key: ")
+        with open('api_key.txt', 'w') as file:
+            file.write(api_key)
+        os.environ['OPENAI_API_KEY'] = api_key  # Set the environment variable
+        from AI import initialize_client
+        initialize_client()  # Initialize the OpenAI client after setting the API key
+    generate_wordlist_choice = input("Would you like to generate a wordlist? (y/n): ")
     
+    if generate_wordlist_choice.lower() == 'y':
+        print("Generating wordlist...")
+        sensitive_info = collect_sensitive_information()
+        wordlist = generate_wordlist(sensitive_info)
+        print("Wordlist generated.")
+    
+    elif generate_wordlist_choice.lower() != 'n':
+        print("Invalid input. Please enter 'y' or 'n'.")
+        return  # Exit or repeat the query
+
     continue_attack = input("Do you want to continue the previous session? (y/n): ")
+
     if continue_attack.lower() not in ['y', 'n']:
         print("Invalid input. Please enter 'y' or 'n'.")
         return  # Exit or repeat the query
+    
+    
     if continue_attack.lower() == 'y':
         session = SessionManager()
         print(f"Debug: Session instantiated with session_data - {session.session_data}")
@@ -116,16 +163,24 @@ def main():
                 print(f"An error occurred during the dictionary attack: {e}")
 
         elif attack_mode == '3':
-            dictionary_file = get_user_input("Enter path to dictionary file")
-            bruteforce_options = get_user_input("Enter options for bruteforce ")
-
-            session.update_session(hash_value=hash_value, hash_mode=hash_type, attack_mode='hybrid')
-            print("Starting hybrid attack...")
-            try:
-                result = hybrid_attack(hash_value, hash_type, dictionary_file, bruteforce_options)
-                print(f"Attack result: {result}")
-            except Exception as e:
-                print(f"An error occurred during the hybrid attack: {e}")
+            print("Hybrid mode selected. This mode combines dictionary and brute force attacks.")
+            dictionary_file = get_user_input("Enter path to dictionary file: ")
+            print("For the brute force component, specify the character sets to use:")
+            print("  'l' for lowercase letters (a-z)")
+            print("  'L' for uppercase letters (A-Z)")
+            print("  'N' for numbers (0-9)")
+            print("  '@' for symbols (all printable ASCII symbols)")
+            print("Enter a pattern as a combination of 'l', 'L', 'N', and '@'.")
+            print("Example pattern: 'L:N:@' for uppercase letters, numbers, and symbols.")
+            print("You can also specify multiple segments separated by ':' where each segment will be treated as a separate part of the brute force attack.")
+            bruteforce_options = get_user_input("Enter bruteforce options: ")
+            print("Enter the position to append brute force options:")
+            print("  'start' to prepend to the beginning of the word")
+            print("  'end' to append to the end of the word")
+            print("  or enter a specific numeric index to insert within the word")
+            position = get_user_input("Choose position (start, end, or index): ")
+            result = hybrid_attack(hash_value, hash_type, dictionary_file, bruteforce_options, position)
+            print(f"Attack result: {result}")
         if result:
             session.mark_complete()
 
