@@ -14,7 +14,7 @@ def clear_screen():
     else:  # for Mac and Linux(here, os.name is 'posix')
         os.system('clear')
 
-def display_banner(text, duration=10):
+def display_banner(text, duration=5):
     """Displays the ASCII banner with a color cycling effect."""
     colors = [31, 32, 33, 34, 35, 36, 37]  # ANSI color codes for red, green, yellow, blue, magenta, cyan, white
     frames_per_second = 5

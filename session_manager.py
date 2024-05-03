@@ -14,6 +14,7 @@ class SessionManager:
             'hash_mode': None,
             'attack_mode': None,
             'dictionary_file': None,
+            'total_words': 0,
             'progress': 0,
             'complete': False,
             'bruteforce_options': None  # Add default bruteforce options here
@@ -28,7 +29,6 @@ class SessionManager:
                     self.session_data = json.load(file)
                 if progress:
                     self.session_data['progress'] = progress
-                print("Session loaded. Resume with the following options:")
                 print(json.dumps(self.session_data, indent=4))
             else:
                 print("No existing session found. Starting a new session.")
@@ -59,6 +59,10 @@ class SessionManager:
 
     def update_progress(self, progress=0):
         self.session_data['progress'] = progress
+        self.save_session()
+
+    def update_total_words(self, total_words):
+        self.session_data['total_words'] = total_words
         self.save_session()
 
 # Example usage:

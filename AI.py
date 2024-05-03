@@ -1,7 +1,17 @@
 # AI.py - Module for integrating GPT-4 to generate wordlists for hash cracking
 
 from openai import OpenAI
+import os
+import sys
 
+def red_input(prompt):
+    """
+    This function prints the prompt in red and returns the input provided by the user.
+    """
+    sys.stdout.write("\033[91m" + prompt)
+    user_input = input()
+    sys.stdout.write("\033[0m")  # Reset the color to default
+    return user_input
 
 def get_api_key():
     try:
@@ -56,14 +66,14 @@ def collect_sensitive_information():
     
     print("Please enter the following sensitive information about the target:")
     for prompt in prompts:
-        prompts[prompt] = input(f"{prompt}: ")
+        prompts[prompt] = red_input(f"{prompt}: ")
     
     # Concatenate all information into a single string
     sensitive_info = ", ".join(f"{key}: {value}" for key, value in prompts.items() if value)
     return sensitive_info
 
 # Function to generate wordlist based on user-provided information
-def generate_wordlist(sensitive_info, model="gpt-4", max_tokens=5000):
+def generate_wordlist(sensitive_info, model="gpt-4", max_tokens=5000, file_path='.', file_name='generated_wordlist.txt'):
     """
     Generates a wordlist using GPT-4 based on the provided sensitive information, querying for passwords based on the context of all the sensitive information.
 
@@ -71,13 +81,15 @@ def generate_wordlist(sensitive_info, model="gpt-4", max_tokens=5000):
     sensitive_info (str): String containing concatenated sensitive information about the user/target for wordlist generation.
     model (str): Identifier for the GPT model to use.
     max_tokens (int): Maximum number of tokens to generate.
+    file_path (str): The directory path where the wordlist file will be saved.
+    file_name (str): The filename for the wordlist file.
 
     Returns:
     list: A list of potential passwords.
     """
     wordlist = []
     try:
-        with open('generated_wordlist.txt', 'w') as file:  # Open file in write mode
+        with open(os.path.join(file_path, file_name), 'w') as file:  # Open file in write mode using the specified path and filename
             while len(wordlist) < 100:  # Loop until at least 100,000 words are generated
                 prompt = f"Generate a list of potential passwords based on the following details: {sensitive_info} Passwords must be 8-20 characters contain 1 capital and 1 speical character "
                 response = client.chat.completions.create(
@@ -90,7 +102,7 @@ def generate_wordlist(sensitive_info, model="gpt-4", max_tokens=5000):
                 )
                 # Filter words to meet length requirements
                 potential_words = response.choices[0].message.content.strip().split('\n')
-                valid_words = [word for word in potential_words if 8 <= len(word) <= 20]
+                valid_words = [word for word in potential_words if 8 <= len(word) <= 20 and not word[0].isdigit()]
                 for word in valid_words:
                     file.write(word + '\n')  # Write each word to the file
                 wordlist.extend(valid_words)

@@ -9,23 +9,26 @@ from dictionary_loader import load_dictionary
 from session_manager import SessionManager
 
 
-def dictionary_attack(hash_value, hash_type, dictionary_file, start_from=0):
+def dictionary_attack(hash_value, hash_type, dictionary_file):
     print("Starting dictionary attack...")
     try:
         dictionary = load_dictionary(dictionary_file)
         hash_func = getattr(hashlib, hash_type)  # Correctly get the hash function
         total_words = len(dictionary)
-        for index, word in enumerate(dictionary[start_from:], start=start_from):
+
+        for index, word in enumerate(dictionary, start=1):
             if index % 100 == 0:  # Update progress every 100 words
-                SessionManager['progress'] = index  # Update session dictionary
                 print(f"\rTested {index} of {total_words} words", end='')
             if hash_func(word.strip().encode()).hexdigest() == hash_value:
                 print(f"Match found: {word}")
                 return word
+
     except FileNotFoundError:
         print("Dictionary file not found.")
     except Exception as e:
         print(f"An error occurred: {e}")
+
+    return None
 
 def bruteforce_attack(hash_value, hash_type, bruteforce_options, start_from=0, session=None):
     print(f"Debug: start_from type - {type(start_from)}, value - {start_from}")
