@@ -111,11 +111,22 @@ def main():
         log_hash(hash_value)
         
         # Identify or confirm hash type
-        print(identify_hash(hash_value))
-        hash_type = red_input("Enter hash type: ")
-        new_hash_type = red_input(f"Identified hash type as {hash_type}. Press Enter to confirm or type a different one: ")
-        if new_hash_type:
-            hash_type = new_hash_type
+        identified_hash_types = identify_hash(hash_value)
+        if not identified_hash_types:
+            print("No valid hash types identified. Please check the hash value.")
+            return
+        
+        print("Identified hash types:")
+        for i, hash_type in enumerate(identified_hash_types, start=1):
+            print(f"{i}. {hash_type}")
+        
+        hash_type_choice = int(red_input("Select the hash type by entering the corresponding number: "))
+        if 1 <= hash_type_choice <= len(identified_hash_types):
+            hash_type = identified_hash_types[hash_type_choice - 1]
+        else:
+            print("Invalid choice. Exiting.")
+            return
+        
         session.session_data['hash_mode'] = hash_type  # Update session data immediately after first input
         
         # Select attack mode
@@ -179,5 +190,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

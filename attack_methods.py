@@ -89,9 +89,12 @@ def hybrid_attack(hash_value, hash_type, dictionary_file, bruteforce_options, po
     # If not found, proceed with brute force
     modified_wordlist = generate_modified_words_from_dictionary(dictionary_file, bruteforce_options, position)
     for index, word in enumerate(modified_wordlist):
+        if index % 10 == 0:  # Print every 10 words
+            print(f"Debug: Word {index}: '{word}'")
         if index % 1000 == 0:  # Update progress every 1000 words
             print(f"Tested {index} words, current word: '{word}'...")
-        if getattr(hashlib, hash_type, None) or hashlib.new(hash_type)(word.encode()).hexdigest() == hash_value:
+        hash_func = getattr(hashlib, hash_type, None) or hashlib.new(hash_type)
+        if hash_func(word.encode()).hexdigest() == hash_value:
             print(f"Password found using brute force: {word}")
             return word
 
@@ -110,15 +113,37 @@ def generate_modified_words_from_dictionary(dictionary_file, bruteforce_options,
             }
             pattern = ''.join(charsets[char] for char in bruteforce_options if char in charsets)
             if position == 'start':
-                for pat in pattern:
-                    yield f"{pat}{word}"
+                for pat in product(pattern, repeat=len(bruteforce_options)):
+                    yield f"{''.join(pat)}{word}"
             elif position == 'end':
-                for pat in pattern:
-                    yield f"{word}{pat}"
+                for pat in product(pattern, repeat=len(bruteforce_options)):
+                    yield f"{word}{''.join(pat)}"
             else:
                 pos = int(position)
-                for pat in pattern:
-                    yield word[:pos] + pat + word[pos:]
+                for pat in product(pattern, repeat=len(bruteforce_options)):
+                    yield word[:pos] + ''.join(pat) + word[pos:]
+
+def generate_modified_words_from_dictionary(dictionary_file, bruteforce_options, position):
+    with open(dictionary_file, 'r', encoding='utf-8', errors='ignore') as file:
+        for line in file:
+            word = line.strip()
+            charsets = {
+                'l': "abcdefghijklmnopqrstuvwxyz",
+                'L': "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                'N': "0123456789",
+                '@': "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+            }
+            pattern = ''.join(charsets[char] for char in bruteforce_options if char in charsets)
+            if position == 'start':
+                for pat in product(pattern, repeat=len(bruteforce_options)):
+                    yield f"{''.join(pat)}{word}"
+            elif position == 'end':
+                for pat in product(pattern, repeat=len(bruteforce_options)):
+                    yield f"{word}{''.join(pat)}"
+            else:
+                pos = int(position)
+                for pat in product(pattern, repeat=len(bruteforce_options)):
+                    yield word[:pos] + ''.join(pat) + word[pos:]
 
 def generate_modified_words(base_word, position, bruteforce_options):
     if position == 'start':
