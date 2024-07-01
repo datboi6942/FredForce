@@ -13,7 +13,7 @@ def dictionary_attack(hash_value, hash_type, dictionary_file):
     print("Starting dictionary attack...")
     try:
         dictionary = load_dictionary(dictionary_file)
-        hash_func = getattr(hashlib, hash_type)  # Correctly get the hash function
+        hash_func = getattr(hashlib, hash_type, None) or hashlib.new(hash_type)
         total_words = len(dictionary)
 
         for index, word in enumerate(dictionary, start=1):
@@ -52,8 +52,11 @@ def bruteforce_attack(hash_value, hash_type, bruteforce_options, start_from=0, s
     if hash_type in hashlib.algorithms_available:
         hash_func = getattr(hashlib, hash_type)
     else:
-        print(f"Unsupported hash type: {hash_type}")
-        return None
+        try:
+            hash_func = hashlib.new(hash_type)
+        except ValueError:
+            print(f"Unsupported hash type: {hash_type}")
+            return None
 
     # Generate and test combinations
     total_combinations = len(list(product(charset, repeat=len(pattern))))
@@ -88,7 +91,7 @@ def hybrid_attack(hash_value, hash_type, dictionary_file, bruteforce_options, po
     for index, word in enumerate(modified_wordlist):
         if index % 1000 == 0:  # Update progress every 1000 words
             print(f"Tested {index} words, current word: '{word}'...")
-        if getattr(hashlib, hash_type)(word.encode()).hexdigest() == hash_value:
+        if getattr(hashlib, hash_type, None) or hashlib.new(hash_type)(word.encode()).hexdigest() == hash_value:
             print(f"Password found using brute force: {word}")
             return word
 
